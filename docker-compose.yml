@@ -1,0 +1,50 @@
+version: "3"
+services:
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
+        environment:
+        - discovery.type=single-node
+        - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+        - bootstrap.memory_lock=true
+        - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        ports:
+        - 9200:9200
+        volumes: 
+        - data-elastic:/usr/share/elasticsearch/data
+        networks:
+        - elastic
+    apm-server:
+        image: docker.elastic.co/apm/apm-server:7.6.2
+        ports:
+        - 8200:8200
+        volumes:
+        - ./apm-server.docker.yml:/usr/share/apm-server/apm-server.yml:ro
+        environment:
+        - output.elasticsearch.hosts=["elastic:9200"]
+        - output.elasticsearch.username=elastic
+        - output.elasticsearch.password=${ELASTIC_PASSWORD}
+        networks: 
+        - elastic
+        depends_on:
+        - "kibana"
+    kibana:
+        image: docker.elastic.co/kibana/kibana:7.6.2
+        environment: 
+        - SERVER_NAME = kibana
+        - ELASTICSEARCH_HOSTS = http://elastic:9200
+        - ELASTICSEARCH_USERNAME=elastic
+        - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+        ports:
+        - 5601:5601
+        depends_on:
+        - "elasticsearch"
+        networks: 
+        - elastic
+        links: ['elasticsearch']
+
+volumes: 
+    data-elastic:
+
+networks:    
+    elastic:
+        driver: bridge
